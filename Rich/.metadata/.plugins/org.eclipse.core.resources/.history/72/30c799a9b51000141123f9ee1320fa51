@@ -1,0 +1,68 @@
+package logic;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+
+public class Client 
+{
+	int num;
+	Socket socket;
+	BufferedReader sin, is;
+	PrintWriter os;
+	String readline;
+
+	public void connect()
+	{
+		try
+		{
+			socket = new Socket("127.0.0.1", 4700);
+			num = Main.playerNum++;
+			System.out.println("No." + num);
+			sin = new BufferedReader(new InputStreamReader(System.in));
+			os = new PrintWriter(socket.getOutputStream());
+			is = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		}
+		catch(Exception e) 
+		{
+			System.out.println("Failed to connect!");
+			System.out.println(e);
+		}
+
+	}
+	
+	public void gameRun()
+	{
+		while (true)
+		{
+			//玩家num的回合，阻塞直至玩家按下掷骰子行进按钮
+			System.out.println("Player " + num + "'s turn!");
+			try 
+			{
+				while (true)
+				{
+					readline = sin.readLine();
+					os.println(readline);
+					os.flush();
+					if (readline.equals("end"))
+						break;
+				}
+				System.out.println("Player " + num + "'s turn is ended!");
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static void main (String args[])
+	{
+		Client c = new Client();
+		c.connect();
+		c.gameRun();
+	}
+	
+}

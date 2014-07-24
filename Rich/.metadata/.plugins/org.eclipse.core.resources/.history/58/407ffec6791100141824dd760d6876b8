@@ -1,0 +1,14 @@
+public class Test 
+{
+	public static void main (String args[])
+	{
+		String s = "%save%test.txt";
+		if (s.startsWith("%save%"))
+		{
+			String name = s.substring(5);
+			System.out.println(name);
+		}
+	}
+
+  
+}  

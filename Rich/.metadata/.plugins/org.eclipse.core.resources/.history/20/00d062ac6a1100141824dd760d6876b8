@@ -1,0 +1,14 @@
+public class Test 
+{
+	public static void main (String args[])
+	{
+		String s = "@4@";
+		if (s.startsWith("@"))
+		{
+			int n = s.charAt(1);
+			System.out.println(n);
+		}
+	}
+
+  
+}  

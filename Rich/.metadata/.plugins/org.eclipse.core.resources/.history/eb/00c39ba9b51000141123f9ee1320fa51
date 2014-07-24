@@ -1,0 +1,66 @@
+package datas;
+
+import java.util.Random;
+
+import logic.Main;
+
+public class Cards 
+{
+	private class SingleCard
+	{
+		int number;
+		boolean luckyCard;
+		String name;
+	}
+	
+	static SingleCard card[] = new SingleCard[30];
+	static int cardNum = 10;
+	
+	public static void setCards()
+	{
+		for (int i = 0;i < cardNum;i++)
+		{
+			card[i].number = i;
+			if (i % 2 == 1)
+				card[i].luckyCard = true;
+			else card[i].luckyCard = false;
+		}
+		//card[0].name = "停留卡";
+	}
+	
+	public static void getCards(int n)   //传入玩家编号
+	{
+		Random random = new Random();
+		int result = random.nextInt(10);
+		switch (result)
+		{
+		case 0:   //玩家进入监狱，停留一回合
+			Main.player[n].setCondition(Conditions.STOP);
+			Main.player[n].setPosition(10);    //位置设为监狱坐标
+			Main.player[n].remain = 1;
+			break;
+		case 1:    //玩家设为无敌状态三回合
+			Main.player[n].setCondition(Conditions.LUCKY);
+			Main.player[n].remain = 3;
+			break;
+		case 2:    //
+			break;
+		case 3:    //
+			break;
+		case 4:    //
+			break;
+		case 5:    //
+			break;
+		case 6:    //
+			break;
+		case 7:    //
+			break;
+		case 8:    //
+			break;
+		case 9:    //
+			break;
+			
+		}
+	}
+
+}

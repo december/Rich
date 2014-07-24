@@ -1,0 +1,55 @@
+package logic;
+
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.net.ServerSocket;
+
+import datas.PlayerInfo;
+
+public class Main 
+{
+	public static int playerNum = 0;    //玩家总数量
+	public static int playerReady = 0;    //准备好的玩家数量
+	static int playerNow = 0;      //当前进行游戏的玩家编号
+	static int turns;         //游戏回合数
+	public static PlayerInfo player[] = new PlayerInfo[4];
+	ServerThread sThread[] = new ServerThread[4];
+	final static String lock = new String();
+    static PipedOutputStream pos = new PipedOutputStream();
+    static PipedInputStream pis = new PipedInputStream();
+	
+	private boolean gameOver()
+	{
+		int sum = 0;
+		for (int i = 0;i < 4;i++)
+			if (player[i].bankrupt)
+				sum++;
+		if (sum == playerNum - 1)
+			return true;
+		else return false;
+	}
+	
+	public static void main (String args[])
+	{
+		for (int i = 0;i < 4;i++)
+			player[i] = new PlayerInfo(i);
+		ServerSocket serverSocket = null;
+		boolean listening = true;
+		try
+		{
+			serverSocket = new ServerSocket(4700);
+			while (listening)
+			{
+				new ServerThread(serverSocket.accept(), playerNum).start();
+				System.out.println(playerNum++);
+			}
+			serverSocket.close();
+		}
+		catch(IOException e) 
+		{
+			System.out.println("Could not listen port:4700.");
+			System.exit(-1);
+		}
+	}
+}

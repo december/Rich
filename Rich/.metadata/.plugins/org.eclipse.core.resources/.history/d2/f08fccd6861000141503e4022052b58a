@@ -1,0 +1,36 @@
+package datas;
+
+enum Types {Land, Bank, Cards, Prison};
+
+class Lattice
+{
+	Types type;
+	int street;
+	int owner;
+	int level;
+	int landValue;    //土地价值 / 购买所需费用
+	int fee;       //过路费
+	int upPrice;    //升到下一级所需费用
+	
+	Lattice()
+	{
+		level = 0;
+		owner = -1;
+	}
+}
+
+public class ChessBoard 
+{
+	static Lattice board[] = new Lattice[50];
+	
+	ChessBoard()
+	{
+		//set street, type and landValue
+	}
+	
+	public Lattice getLattice(int number)
+	{
+		return board[number];
+	}
+	
+}

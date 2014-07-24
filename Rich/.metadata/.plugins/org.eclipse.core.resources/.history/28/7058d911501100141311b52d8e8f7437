@@ -1,0 +1,116 @@
+package logic;
+
+import java.io.*;
+import java.net.*;
+
+import datas.*;
+
+public class ServerThread extends Thread
+{
+	Socket socket = null;
+	int clientnum = 0;
+	ChessBoard chess;
+	//Condition c;
+	
+	
+	public ServerThread(Socket socket, int num) 
+	{
+		this.socket = socket;
+		clientnum = num;
+	}
+	
+	public void getInfo()
+	{
+		try
+		{
+			String line;
+			BufferedReader is = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			PrintWriter os = new PrintWriter(socket.getOutputStream());
+			while (true)
+			{
+				synchronized (Main.lock)
+				{
+					System.out.println("Player " + clientnum + "'s turn.(" + Main.playerNow + ")");
+					if (Main.playerNow != clientnum)
+					{
+						os.println("No");
+						System.out.println("Player " + clientnum + " is waiting......");
+						Main.lock.wait();
+					}
+					os.println("Yes");
+					line = is.readLine();
+					while (!line.equals("end"))
+					{
+						os.println(line);
+						os.flush();
+						System.out.println("Player " + clientnum + line);
+						line = is.readLine();
+					}
+					Main.playerNow = (Main.playerNow + 1) % Main.playerNum;
+					Main.lock.notifyAll();
+				}
+			}
+		}
+		catch(Exception e) 
+		{
+			System.out.println(e);
+		}
+	}
+	
+	public void run() 
+	{
+		System.out.println("New thread.");
+		getInfo();
+	}
+	
+	private void handle(int position)   //根据所在格子执行不同的函数
+	{
+		int result = chess.getLattice(position, clientnum);
+		int temp = 0;
+		if (position < Main.player[clientnum].lastPosition) //经过起点加发存款利息
+		{
+			if (position != 0)
+				Main.player[clientnum].addInterest();
+		}
+		switch (result)
+		{
+		case 0:
+			if (Main.player[clientnum].getCash() >= chess.getData(0, position, clientnum))
+			{
+				//询问是否购买土地
+				//if yes
+				Main.player[clientnum].purchaseLand(position);
+			}
+			break;
+		case 1:
+			temp = chess.getData(1, position, clientnum);
+			Main.player[clientnum].addCash(-temp);
+			Main.player[chess.getOwner(position)].addDeposit(temp);
+			break;
+		case 2:
+			if (Main.player[clientnum].getCash() >= chess.getData(0, position, clientnum))
+			{
+				//询问是否加盖房屋
+				//if yes
+				Main.player[clientnum].upgradeLand(position);
+			}
+			break;
+		case 3:
+			//询问是否进行存取款操作
+			//if yes
+			//temp = 存款金额（若取款则为负）
+			Main.player[clientnum].addCash(-temp);
+			Main.player[clientnum].addDeposit(temp);
+			break;
+		case 4:
+			temp = chess.getData(4, position, clientnum);  //返回卡片种类
+			break;
+		default:
+			break;
+		}
+		if (Main.player[clientnum].bankrupt)  // 玩家破产
+		{
+			//......
+		}
+	}
+}

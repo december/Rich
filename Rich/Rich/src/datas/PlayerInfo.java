@@ -1,0 +1,275 @@
+package datas;
+
+import java.util.ArrayList;
+import java.util.List;
+
+enum Conditions {NORMAL, STOP, DOOM, LUCKY};
+
+public class PlayerInfo 
+{
+	private int number;  //玩家编号
+	private int money;    //总财产
+	private int cash;      //现金
+	private int deposit;    //存款
+	private int fortune;  //总资产（包括土地价值）
+	private int position;    //玩家所在位置
+	private String picture;    //玩家头像图片文件名称
+	public int remain;      //状态保留回合数
+	public int lastPosition;     //上次所在位置
+	public boolean active;      //是否存在人类玩家
+	public boolean bankrupt;       //是否破产
+	private Conditions condition;   //玩家状态
+	
+	private List<Integer> landList = new ArrayList<Integer>();
+	
+	public PlayerInfo(int n)
+	{
+		money = 20000;
+		cash = 10000;
+		deposit = 10000;
+		condition = Conditions.NORMAL;
+		bankrupt = false;
+		active = false;;
+		fortune = 20000;
+		number = n;
+	}
+	
+	private void calculate()   //计算玩家资产
+	{
+		fortune = cash + deposit;
+		for (int i = 0;i < ChessBoard.latticeNum;i++)
+		{
+			if (ChessBoard.board[i].owner == number)
+			{
+				fortune += ChessBoard.board[i].landValue;
+				fortune += ChessBoard.board[i].fee;
+			}
+		}
+	}
+	
+	public boolean purchaseLand(int n)
+	{
+		if (ChessBoard.board[n].type != Types.Land)
+			return false;
+		if (cash < ChessBoard.board[n].landValue)
+			return false;
+		cash -= ChessBoard.board[n].landValue;
+		ChessBoard.board[n].owner = number;
+		landList.add(n);
+		return true;
+	}
+	
+	public boolean upgradeLand(int n)
+	{
+		if (ChessBoard.board[n].type != Types.Land)
+			return false;
+		if (cash < ChessBoard.board[n].upPrice)
+			return false;
+		cash -= ChessBoard.board[n].upPrice;
+		int l = ++ChessBoard.board[n].level;
+		ChessBoard.board[n].upPrice += ChessBoard.board[n].fee;
+		ChessBoard.board[n].fee += l * l * 10;
+		ChessBoard.board[n].landValue += l * l * 20;
+		return true;
+	}
+	
+	public Conditions setCondition(Conditions c)
+	{
+		condition = c;
+		return condition;
+	}
+	
+	public void setCondNum(int n)
+	{
+		if (n == 0)
+			condition = Conditions.NORMAL;
+		if (n == 1)
+			condition = Conditions.LUCKY;
+		if (n == 2)
+			condition = Conditions.DOOM;
+		if (n == 3)
+			condition = Conditions.STOP;
+	}
+	
+	public int setPosition(int pos)
+	{
+		position = pos;
+		return position;
+	}
+	
+	public int setMoney(int value)
+	{
+		money = value;
+		calculate();
+		return value;
+	}
+	
+	public int setCash(int value)
+	{
+		cash = value;
+		money = cash + deposit;
+		calculate();
+		return value;
+	}
+	
+	public int setDeposit(int value)
+	{
+		deposit = value;
+		money = cash + deposit;
+		calculate();
+		return value;
+	}
+	
+	public String setPicture(String p)
+	{
+		picture = p;
+		return picture;
+	}
+	
+	public int addPosition(int n)
+	{
+		if (n > 6 || n < 0)
+			return -1;
+		position = (position + n) % ChessBoard.latticeNum;
+		return position;
+	}
+	
+	public int addCash(int value)
+	{
+		cash += value;
+		money = cash + deposit;
+		if (money < 0)
+		{
+			bankrupt = true;
+			return -1;
+		}
+		if (cash < 0)
+		{
+			cash = 0;
+			deposit = money;
+		}
+		fortune += value;
+		return cash;
+	}
+	
+	public int addDeposit(int value)
+	{
+		deposit += value;
+		money = cash + deposit;
+		if (money < 0)
+		{
+			bankrupt = true;
+			return -1;
+		}
+		if (deposit < 0)
+		{
+			deposit = 0;
+			cash = money;
+		}
+		fortune += value;
+		return deposit;
+	}
+	
+	public int addInterest()
+	{
+		int v = (int) (deposit * 0.1);
+		return addDeposit(v);
+	}
+	
+	public Conditions getCondition()
+	{
+		return condition;
+	}
+	
+	public int getCondNum()
+	{
+		if (condition == Conditions.NORMAL)
+			return 0;
+		if (condition == Conditions.LUCKY)
+			return 1;
+		if (condition == Conditions.NORMAL)
+			return 2;
+		return 3;
+	}
+	
+	public int getPosition()
+	{
+		return position;
+	}
+	
+	public int getNumber()
+	{
+		return number;
+	}
+	
+	public int getMoney()
+	{
+		return money;
+	}
+	
+	public int getCash()
+	{
+		return cash;
+	}
+	
+	public String getPicture()
+	{
+		return picture;
+	}
+	
+	public int getDeposit()
+	{
+		return deposit;
+	}
+	
+	public int getFortune()
+	{
+		calculate();
+		return fortune;
+	}
+	
+	public String getInfo()
+	{
+		calculate();
+		String s = fortune + "$" + money + "$" + cash + "$" + deposit;
+		for (int i = 0;i < ChessBoard.latticeNum;i++)
+		{
+			if (ChessBoard.board[i].owner == number)
+				s += "#" + ChessBoard.board[i].name;
+		}
+		return s;
+	}
+	
+	public String getData()
+	{
+		calculate();
+		String s = number + "!" + money + "!" + cash + "!" + deposit + "!" + 
+				   fortune + "!" + position + "!" + remain + "!" + lastPosition
+				   + "!" + active + "!" + bankrupt + "!" + condition + "!"
+				   + picture + "!";
+		return s;
+	}
+	
+	public void loadData(String s)
+	{
+		String []temp = s.split("!");
+		if (temp.length < 12)
+		{
+			System.out.println("Load error!");
+			return;
+		}
+		number = Integer.parseInt(temp[0]);
+		money = Integer.parseInt(temp[1]);
+		cash = Integer.parseInt(temp[2]);
+		deposit = Integer.parseInt(temp[3]);
+		fortune = Integer.parseInt(temp[4]);
+		position = Integer.parseInt(temp[5]);
+		remain = Integer.parseInt(temp[6]);
+		lastPosition = Integer.parseInt(temp[7]);
+		active = Boolean.parseBoolean(temp[8]);
+		bankrupt = Boolean.parseBoolean(temp[9]);
+		condition = Conditions.valueOf(temp[10]);
+		picture = temp[11];
+	}
+
+}

@@ -1,0 +1,159 @@
+package datas;
+
+import java.util.ArrayList;
+import java.util.List;
+
+enum Conditions {NORMAL, STOP, DOOM, LUCKY};
+
+public class PlayerInfo 
+{
+	private int number;  //玩家编号
+	private int money;    //总财产
+	private int cash;      //现金
+	private int deposit;    //存款
+	private int fortune;  //总资产（包括土地价值）
+	private int position;    //玩家所在位置
+	public int remain;      //状态保留回合数
+	public boolean bankrupt;       //是否破产
+	private Conditions condition;   //玩家状态
+	
+	private List landList = new ArrayList();
+	
+	public PlayerInfo(int n)
+	{
+		money = 20000;
+		cash = 10000;
+		deposit = 10000;
+		condition = Conditions.NORMAL;
+		bankrupt = false;
+		fortune = 20000;
+		number = n;
+	}
+	
+	private void calculate()
+	{
+		fortune = cash + deposit;
+		for (int i = 0;i < ChessBoard.latticeNum;i++)
+		{
+			if (ChessBoard.board[i].owner == number)
+			{
+				fortune += ChessBoard.board[i].landValue;
+				fortune += ChessBoard.board[i].fee;
+			}
+		}
+	}
+	
+	public boolean purchaseLand(int n)
+	{
+		if (ChessBoard.board[n].type != Types.Land)
+			return false;
+		if (cash < ChessBoard.board[n].landValue)
+			return false;
+		cash -= ChessBoard.board[n].landValue;
+		ChessBoard.board[n].owner = number;
+		landList.add(n);
+		return true;
+	}
+	
+	public Conditions setCondition(Conditions c)
+	{
+		condition = c;
+		return condition;
+	}
+	
+	public int setPosition(int pos)
+	{
+		position = pos;
+		return position;
+	}
+	
+	public int setMoney(int value)
+	{
+		money = value;
+		calculate();
+		return value;
+	}
+	
+	public int setCash(int value)
+	{
+		cash = value;
+		money = cash + deposit;
+		calculate();
+		return value;
+	}
+	
+	public int setDeposit(int value)
+	{
+		deposit = value;
+		money = cash + deposit;
+		calculate();
+		return value;
+	}
+	
+	public int addCash(int value)
+	{
+		cash += value;
+		money = cash + deposit;
+		if (money < 0)
+		{
+			bankrupt = true;
+			return -1;
+		}
+		if (cash < 0)
+		{
+			cash = 0;
+			deposit = money;
+		}
+		fortune += value;
+		return cash;
+	}
+	
+	public int addDeposit(int value)
+	{
+		deposit += value;
+		money = cash + deposit;
+		if (money < 0)
+		{
+			bankrupt = true;
+			return -1;
+		}
+		if (deposit < 0)
+		{
+			deposit = 0;
+			cash = money;
+		}
+		fortune += value;
+		return deposit;
+	}
+	
+	public Conditions getCondition()
+	{
+		return condition;
+	}
+	
+	public int getPosition()
+	{
+		return position;
+	}
+	
+	public int getMoney()
+	{
+		return money;
+	}
+	
+	public int getCash()
+	{
+		return cash;
+	}
+	
+	public int getDeposit()
+	{
+		return deposit;
+	}
+	
+	public int getFortune()
+	{
+		return fortune;
+	}
+
+}

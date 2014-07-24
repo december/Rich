@@ -1,0 +1,15 @@
+enum Conditions {NORMAL, STOP, DOOM, LUCKY};
+
+public class Test 
+{
+	static Conditions c = Conditions.NORMAL;
+	static boolean x = false;
+	static int m = 20;
+	public static void main (String args[])
+	{
+		String s = m + "!" + x + "!" + c + "?";
+		System.out.println(s);
+	}
+
+  
+}  

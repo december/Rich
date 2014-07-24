@@ -1,0 +1,247 @@
+package logic;
+
+import java.io.*;
+import java.net.*;
+
+import datas.*;
+
+public class ServerThread extends Thread
+{
+	Socket socket = null;
+	int clientnum = 0;
+	ChessBoard chess;
+	String line;
+	BufferedReader is;
+	PrintWriter os;
+	//Condition c;
+	
+	
+	public ServerThread(Socket socket, int num) 
+	{
+		this.socket = socket;
+		clientnum = num;
+	}
+	
+	public void getInfo()
+	{
+		try
+		{
+			is = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			os = new PrintWriter(socket.getOutputStream());
+			while (true)
+			{
+				
+				synchronized (Main.lock)
+				{
+					System.out.println("Player " + clientnum + "'s trying.(" + Main.playerNow + ")");
+					while (Main.playerNow != clientnum)
+					{
+						os.println("No");
+						os.flush();
+						System.out.println("Player " + clientnum + " is waiting......");
+						Main.lock.wait();
+					}
+					os.println("Yes");
+					os.flush();
+					System.out.println("Player " + clientnum + "'s turn has begun.");
+					line = is.readLine();
+					while (command(line))
+					{
+						os.println(line);
+						os.flush();
+						System.out.println("Player " + clientnum + line);
+						line = is.readLine();
+					}
+					Main.playerNow = (Main.playerNow + 1) % Main.playerNum;
+					Main.lock.notifyAll();
+				}
+			}
+		}
+		catch(Exception e) 
+		{
+			System.out.println(e);
+		}
+	}
+	
+	private boolean getReady()
+	{
+		try 
+		{
+			is = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			os = new PrintWriter(socket.getOutputStream());
+			os.println(clientnum);
+			os.flush();
+			while (true)
+			{
+				if (is.readLine().equals("Ready"))
+				{
+					os.println("Please wait......");
+					Main.playerReady++;
+					break;
+				}
+			}
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+		return true;
+	}
+	
+	public void run() 
+	{
+		System.out.println("New thread " + clientnum);
+		if (getReady())
+		{
+			System.out.println("Player " + clientnum + " is ready.");
+			while (Main.playerReady < Main.playerNum || Main.playerNum < 2) {}
+			os.println("Start");
+			os.flush();
+			getInfo();
+		}
+	}
+	
+	private void handle(int position)   //根据所在格子执行不同的函数
+	{
+		int result = chess.getLattice(position, clientnum);
+		int temp = 0;
+		if (position < Main.player[clientnum].lastPosition) //经过起点加发存款利息
+		{
+			if (position != 0)
+				Main.player[clientnum].addInterest();
+		}
+		Main.player[clientnum].lastPosition = position;
+		switch (result)
+		{
+		case 0:
+			if (Main.player[clientnum].getCash() >= chess.getData(0, position, clientnum))
+			{
+				//询问是否购买土地
+				//if yes
+				Main.player[clientnum].purchaseLand(position);
+			}
+			break;
+		case 1:
+			int factor = 1;   //状态因子
+			if (Main.player[clientnum].getCondNum() == 1)
+			{
+				factor = 0;
+				Main.player[clientnum].remain--;
+				if (Main.player[clientnum].remain == 0)
+					Main.player[clientnum].setCondNum(0);
+			}
+			if (Main.player[clientnum].getCondNum() == 2)
+			{
+				factor = 2;
+				Main.player[clientnum].remain--;
+				if (Main.player[clientnum].remain == 0)
+					Main.player[clientnum].setCondNum(0);
+			}
+			temp = chess.getData(1, position, clientnum) * factor;
+			Main.player[clientnum].addCash(-temp);
+			Main.player[chess.getOwner(position)].addDeposit(temp);
+			break;
+		case 2:
+			if (Main.player[clientnum].getCash() >= chess.getData(0, position, clientnum))
+			{
+				//询问是否加盖房屋
+				//if yes
+				Main.player[clientnum].upgradeLand(position);
+			}
+			break;
+		case 3:
+			//询问是否进行存取款操作
+			//if yes
+			//temp = 存款金额（若取款则为负）
+			Main.player[clientnum].addCash(-temp);
+			Main.player[clientnum].addDeposit(temp);
+			break;
+		case 4:
+			temp = chess.getData(4, position, clientnum);  //返回卡片种类
+			break;
+		default:
+			break;
+		}
+		if (Main.player[clientnum].bankrupt)  // 玩家破产
+		{
+			//......
+		}
+	}
+	
+	private boolean command(String s)
+	{
+		if (s.equals("end"))     //测试用
+			return false;            //测试用
+		if (s.startsWith("@"))        //掷骰子信息，传递所掷数字
+		{
+			int n = s.charAt(1) - 48;    //获得所掷骰子数据
+			int f = Main.player[clientnum].addPosition(n);
+			handle(f);
+			return false;
+		}
+		if (s.startsWith("#"))          //查询操作
+		{
+			String info = Main.player[clientnum].getInfo();
+			os.println(info);
+			os.flush();
+			return true;
+		}
+		if (s.startsWith("&"))      //聊天操作
+		{
+			String words = s.substring(1);
+			os.println(words);
+			os.flush();
+			return true;
+		}
+		if (s.startsWith("%"))       //存取操作
+		{
+			try
+			{
+				if (s.startsWith("%save%"))
+				{
+					String fileName = s.substring(6);
+					File f = new File(fileName);
+					if (!f.exists())
+						f.createNewFile();
+					BufferedWriter out = new BufferedWriter(new FileWriter(f));
+					for (int i = 0;i < 4;i++)
+					{
+						out.write(Main.player[i].getData());
+						out.newLine();
+					}
+					for (int i = 0;i < ChessBoard.latticeNum;i++)
+					{
+						out.write(chess.getInfo(i));
+						out.newLine();
+					}
+					out.close();
+					return true;
+				}
+				
+				if (s.startsWith("%load%"))
+				{
+					String fileName = s.substring(6);
+					File f = new File(fileName);
+					BufferedReader in = new BufferedReader(new FileReader(f));
+					String temp = in.readLine();
+					for (int i = 0;i < 4;i++)
+					{
+						Main.player[i].loadData(temp);
+						temp = in.readLine();
+					}
+					for (int i = 0;i < ChessBoard.latticeNum;i++)
+					{
+						chess.loadData(temp, i);
+						temp = in.readLine();
+					}
+					return true;
+				}
+			}
+			catch (IOException e)
+			{
+				System.out.println(e);
+			}
+		}
+		return true;
+	}
+}
